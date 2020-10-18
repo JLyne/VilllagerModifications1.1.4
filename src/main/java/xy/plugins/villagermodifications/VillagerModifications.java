@@ -191,12 +191,21 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
                     }
                     if (vchange == 1) {
                         int uses = recipe.getUses();
+                        float priceMultipler = recipe.getPriceMultiplier();
+                        boolean xpReward = recipe.hasExperienceReward();
+                        int xp = recipe.getVillagerExperience();
+
                         ItemStack currency = new ItemStack(Material.getMaterial(vmaterial), vcost);
                         ItemStack tradeditem = new ItemStack(recipe.getResult().getType(), recipe.getResult().getAmount());
 
                         MerchantRecipe changedrec = new MerchantRecipe(tradeditem, vuses);
+
                         changedrec.setUses(uses);
+                        changedrec.setPriceMultiplier(priceMultipler);
+                        changedrec.setExperienceReward(xpReward);
+                        changedrec.setVillagerExperience(xp);
                         changedrec.addIngredient(currency);
+
                         villager.setRecipe(pos, changedrec);
 
                     }
@@ -236,6 +245,9 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
                             }
                             if (vchange == 1) {
                                 int uses = recipe.getUses();
+                                float priceMultipler = recipe.getPriceMultiplier();
+                                boolean xpReward = recipe.hasExperienceReward();
+                                int xp = recipe.getVillagerExperience();
 
                                 ItemStack emerald = new ItemStack(Material.getMaterial(vmaterial), vcost);
                                 ItemStack enchantedbook = new ItemStack(recipe.getResult().getType(), 1);
@@ -244,9 +256,14 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
                                 }
                                 enchantedbook.setItemMeta(meta);
                                 MerchantRecipe changedrec = new MerchantRecipe(enchantedbook, vuses);
+
                                 changedrec.setUses(uses);
+                                changedrec.setPriceMultiplier(priceMultipler);
+                                changedrec.setExperienceReward(xpReward);
+                                changedrec.setVillagerExperience(xp);
                                 changedrec.addIngredient(emerald);
                                 changedrec.addIngredient(book_item);
+
                                 villager.setRecipe(pos, changedrec);
                             }
                         }
