@@ -29,6 +29,12 @@ import java.util.List;
 
 
 public final class VillagerModifications extends JavaPlugin implements Listener {
+    private File whitelistFile;
+
+    private FileConfiguration config;
+    private FileConfiguration whitelistConfig;
+
+    private List<String> whitelist;
 
     private String mainPath;
     private long begin;
@@ -44,7 +50,6 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
 
     @Override
     public void onEnable() {
-
         getConfig().options().copyDefaults();
         saveDefaultConfig();
         this.loadSettings();
@@ -54,84 +59,93 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
 
     public void loadSettings() {
         this.mainPath = this.getDataFolder().getPath() + "/";
-        File file = new File(this.mainPath, "config.yml");
-        FileConfiguration cfg = YamlConfiguration.loadConfiguration(file);
+
+        File configFile = new File(this.mainPath, "config.yml");
+        this.whitelistFile = new File(this.mainPath, "whitelist.yml");
+
+        this.config = YamlConfiguration.loadConfiguration(configFile);
+
         widentifier = " ";
         bidentifier = " ";
 
-        File wfile = new File(this.mainPath, "whitelist.yml");
-        FileConfiguration whitelist_info = YamlConfiguration.loadConfiguration(wfile);
-        if (!wfile.exists()) {
-            List<String> whitelist = new ArrayList<>();
-            whitelist.add("placeholder");
-            whitelist_info.addDefault("whitelist", whitelist);
-            whitelist_info.options().copyDefaults(true);
+        this.whitelistConfig = YamlConfiguration.loadConfiguration(this.whitelistFile);
+
+        if (this.whitelistFile.exists()) {
+            this.whitelist = this.whitelistConfig.getStringList("whitelist");
+        } else {
+            this.whitelist = new ArrayList<>();
+            this.whitelist.add("placeholder");
+            this.whitelistConfig.addDefault("whitelist", whitelist);
+            this.whitelistConfig.options().copyDefaults(true);
+
             try {
-                whitelist_info.save(wfile);
-            } catch (IOException var4) {
-            }
+                this.whitelistConfig.save(this.whitelistFile);
+            } catch (IOException ignored) {}
         }
 
-
-        this.begin = cfg.getInt("Work.begin");
-        this.end = cfg.getInt("Work.end");
-        this.allVillagers = cfg.getLong("allVillagers");
-        this.alert = cfg.getInt("alert.on");
-        this.alertmessage = cfg.getString("alert.message");
-        this.BookLore = cfg.getString("Book.Lore");
-        this.BookTitle = cfg.getString("Book.Title");
+        this.begin = this.config.getInt("Work.begin");
+        this.end = this.config.getInt("Work.end");
+        this.allVillagers = this.config.getLong("allVillagers");
+        this.alert = this.config.getInt("alert.on");
+        this.alertmessage = this.config.getString("alert.message");
+        this.BookLore = this.config.getString("Book.Lore");
+        this.BookTitle = this.config.getString("Book.Title");
     }
 
+    public boolean addToWhitelist(Villager villager) {
+        if (this.whitelist.contains(villager.getUniqueId().toString())) {
+            return false;
+        } else {
+            this.whitelist.add(villager.getUniqueId().toString());
+            this.saveWhitelist();
+
+            return true;
+        }
+    }
+
+    public boolean removeFromWhitelist(Villager villager) {
+        if (!this.whitelist.contains(villager.getUniqueId().toString())) {
+            return false;
+        } else {
+            this.whitelist.remove(villager.getUniqueId().toString());
+            this.saveWhitelist();
+
+            return true;
+        }
+    }
+
+    public void saveWhitelist() {
+        this.whitelistConfig.set("whitelist", whitelist);
+        try {
+            this.whitelistConfig.save(this.whitelistFile);
+        } catch (IOException var4) {}
+    }
 
     @EventHandler
     public void interact(PlayerInteractEntityEvent event) {
-
         Player p = event.getPlayer();
         if (!(event.getRightClicked() instanceof Villager)) return;
         Villager villager = (Villager) event.getRightClicked();
 
-        this.mainPath = this.getDataFolder().getPath() + "/";
-        File file = new File(this.mainPath, "config.yml");
-
-        FileConfiguration cfg = YamlConfiguration.loadConfiguration(file);
-        File wfile = new File(this.mainPath, "whitelist.yml");
-        FileConfiguration whitelist_info = YamlConfiguration.loadConfiguration(wfile);
-
-
-        List<String> whitelist = whitelist_info.getStringList("whitelist");
-
-
         if (widentifier.equals(p.getName())) {
-            if (!whitelist.contains(villager.getUniqueId().toString())) {
-                whitelist.add(villager.getUniqueId().toString());
-                whitelist_info.set("whitelist", whitelist);
+            if (addToWhitelist(villager)) {
                 p.sendMessage("Villager has been added to the whitelist");
-                try {
-                    whitelist_info.save(wfile);
-                } catch (IOException var4) {
-                }
             } else {
                 p.sendMessage("Villager is already whitelisted");
             }
         }
 
         if (bidentifier.equals(p.getName())) {
-            if (whitelist.contains(villager.getUniqueId().toString())) {
-                whitelist.remove(villager.getUniqueId().toString());
-                whitelist_info.set("whitelist", whitelist);
+             if (removeFromWhitelist(villager)) {
                 p.sendMessage("Villager has been removed from the whitelist");
-                try {
-                    whitelist_info.save(wfile);
-                } catch (IOException var4) {
-                }
             } else {
                 p.sendMessage("Villager was not found in the whitelist");
             }
         }
 
-
-        if (!whitelist.contains(villager.getUniqueId().toString())) {
-
+        if (whitelist.contains(villager.getUniqueId().toString())) {
+            return;
+        }
 
         if (this.allVillagers == 1) {
             if (!villager.getProfession().equals(Villager.Profession.NONE)) {
@@ -151,9 +165,8 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
             }
         }
 
-
-        List<String> configbooks = cfg.getStringList("enchantments");
-        List<String> restricteditems = cfg.getStringList("CustomItem");
+        List<String> configbooks = this.config.getStringList("enchantments");
+        List<String> restricteditems = this.config.getStringList("CustomItem");
         List<MerchantRecipe> recipes = Lists.newArrayList(villager.getRecipes());
 
         int pos = -1;
@@ -170,11 +183,11 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
 
             for (String item : restricteditems) {
                 if (recipe.getResult().getType().equals(Material.matchMaterial(item))) {
-                    int vrestricted = cfg.getInt(item + ".restricted");
-                    int vchange = cfg.getInt(item + ".change");
-                    String vmaterial = cfg.getString(item + ".material");
-                    int vcost = cfg.getInt(item + ".cost");
-                    int vuses = cfg.getInt(item + ".uses");
+                    int vrestricted = this.config.getInt(item + ".restricted");
+                    int vchange = this.config.getInt(item + ".change");
+                    String vmaterial = this.config.getString(item + ".material");
+                    int vcost = this.config.getInt(item + ".cost");
+                    int vuses = this.config.getInt(item + ".uses");
 
                     if (villager.getWorld().getTime() >= this.end && vrestricted == 1) {
                         if (alert == 1){
@@ -224,12 +237,12 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
                         int level = Integer.parseInt(book_level[1]);
                         if (meta.hasStoredEnchant(enchantment) && meta.getStoredEnchantLevel(enchantment) == level) {
                             book = book.replace(":", "_");
-                            int vrestricted = cfg.getInt(book + ".restricted");
-                            int vchange = cfg.getInt(book + ".change");
-                            String vmaterial = cfg.getString(book + ".material");
-                            int vcost = cfg.getInt(book + ".cost");
-                            int vbook = cfg.getInt(book + ".book");
-                            int vuses = cfg.getInt(book + ".uses");
+                            int vrestricted = this.config.getInt(book + ".restricted");
+                            int vchange = this.config.getInt(book + ".change");
+                            String vmaterial = this.config.getString(book + ".material");
+                            int vcost = this.config.getInt(book + ".cost");
+                            int vbook = this.config.getInt(book + ".book");
+                            int vuses = this.config.getInt(book + ".uses");
                             if (villager.getWorld().getTime() >= this.end && vrestricted == 1) {
                                 if (alert == 1){
                                 p.sendMessage(alertmessage);
@@ -271,7 +284,6 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
                 }
             }
         }
-    }
     }
 
     @Override
