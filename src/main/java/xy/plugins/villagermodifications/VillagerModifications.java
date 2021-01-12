@@ -137,7 +137,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         if (!(event.getRightClicked() instanceof Villager)) return;
         Villager villager = (Villager) event.getRightClicked();
 
-        if (whitelistPlayer.equals(p)) {
+        if (p.equals(whitelistPlayer)) {
             if (addToWhitelist(villager)) {
                 p.sendMessage("Villager has been added to the whitelist");
             } else {
@@ -145,7 +145,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
             }
         }
 
-        if (blacklistPlayer.equals(p)) {
+        if (p.equals(blacklistPlayer)) {
             if (removeFromWhitelist(villager)) {
                 p.sendMessage("Villager has been removed from the whitelist");
             } else {
