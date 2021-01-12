@@ -20,7 +20,7 @@ Work:
 # message: The alert that will be sent to the player if alert is on.
 
 alert:
-  on: 0
+  on: false
   message: "This villager is outside of it's work times"
 
 
@@ -28,7 +28,7 @@ alert:
 # allVillagers: Value of 0 by default means that only villagers with trades containing restricted books are bound by Work begin and Work end.
 #Set to 1 for all villagers to be restricted.
 
-allVillagers: 0
+allVillagers: false
 
 
 
@@ -84,74 +84,74 @@ Book:
 
 
 mending_1:
-  restricted: 0
-  change: 0
+  restricted: false
+  change: false
   material: EMERALD
   cost: 64
-  book: 0
+  book: false
   uses: 1
 
 
 # silk_touch: All configs under this heading effect villagers with silk touch trades.
 
 silk_touch_1:
-  restricted: 0
-  change: 0
+  restricted: false
+  change: false
   material: EMERALD
   cost: 34
-  book: 0
+  book: false
   uses: 1
 
 
 # fortune_3: All configs under this heading effect villagers with fortune 3 trades.
 
 fortune_3:
-  restricted: 0
-  change: 0
+  restricted: false
+  change: false
   material: EMERALD
   cost: 64
-  book: 0
+  book: false
   uses: 1
 
 
 # unbreaking_3: All configs under this heading effect villagers with unbreaking 3 trades.
 
 unbreaking_3:
-  restricted: 0
-  change: 0
+  restricted: false
+  change: false
   material: EMERALD
   cost: 64
-  book: 0
+  book: false
   uses: 1
 
 
 # efficiency_5: All configs under this heading effect villagers with efficiency 5 trades.
 
 efficiency_5:
-  restricted: 0
-  change: 0
+  restricted: false
+  change: false
   material: EMERALD
   cost: 64
-  book: 0
+  book: false
   uses: 1
 
 
 # efficiency_4: All configs under this heading effect villagers with efficiency 4 trades.
 
 efficiency_4:
-  restricted: 0
-  change: 0
+  restricted: false
+  change: false
   material: EMERALD
   cost: 64
-  book: 0
+  book: false
   uses: 1
 
 
 #Example for custom item restriction. Does not have the option for 'book' as most trades are just emeralds.
 
 CLOCK:
-  restricted: 0
-  change: 0
+  restricted: false
+  change: false
   material: EMERALD
   cost: 64
   uses: 1

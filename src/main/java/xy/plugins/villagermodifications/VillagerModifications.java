@@ -5,6 +5,7 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
@@ -37,7 +38,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
     private long begin;
     private long end;
     private long allVillagers;
-    private int alert;
+    private boolean alert;
 
     private ItemStack customBook;
 
@@ -77,7 +78,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         this.begin = this.config.getInt("Work.begin");
         this.end = this.config.getInt("Work.end");
         this.allVillagers = this.config.getLong("allVillagers");
-        this.alert = this.config.getInt("alert.on");
+        this.alert = this.config.getBoolean("alert.on", false);
         this.alertmessage = this.config.getString("alert.message");
 
         customBook = new ItemStack(Material.BOOK, 1);
@@ -158,18 +159,11 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
 
         if (this.allVillagers == 1) {
             if (!villager.getProfession().equals(Villager.Profession.NONE)) {
-                if (villager.getWorld().getTime() >= this.end) {
-                    if (alert == 1){
+                if (isTradeRestricted(villager, true)) {
+                    if (alert) {
                         p.sendMessage(alertmessage);
                     }
                     event.setCancelled(true);
-                } else {
-                    if (villager.getWorld().getTime() <= this.begin) {
-                        if (alert == 1){
-                            p.sendMessage(alertmessage);
-                        }
-                        event.setCancelled(true);
-                    }
                 }
             }
         }
@@ -187,48 +181,21 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
 
             for (String item : restricteditems) {
                 if (recipe.getResult().getType().equals(Material.matchMaterial(item))) {
-                    int vrestricted = this.config.getInt(item + ".restricted");
-                    int vchange = this.config.getInt(item + ".change");
-                    String vmaterial = this.config.getString(item + ".material");
-                    int vcost = this.config.getInt(item + ".cost");
-                    int vuses = this.config.getInt(item + ".uses");
+                    ConfigurationSection config = this.config.getConfigurationSection("CustomItem." + item);
 
-                    if (villager.getWorld().getTime() >= this.end && vrestricted == 1) {
-                        if (alert == 1){
+                    if(config == null) {
+                        continue;
+                    }
+
+                    if (isTradeRestricted(villager, config.getBoolean("restricted", false))) {
+                        if (alert) {
                             p.sendMessage(alertmessage);
                         }
                         event.setCancelled(true);
-                    } else {
-                        if (villager.getWorld().getTime() <= this.begin && vrestricted == 1) {
-                            if (alert == 1){
-                                p.sendMessage(alertmessage);
-                            }
-                            event.setCancelled(true);
-                        }
-                    }
-                    if (vchange == 1) {
-                        int uses = recipe.getUses();
-                        float priceMultipler = recipe.getPriceMultiplier();
-                        boolean xpReward = recipe.hasExperienceReward();
-                        int xp = recipe.getVillagerExperience();
-
-                        ItemStack currency = new ItemStack(Material.getMaterial(vmaterial), vcost);
-                        ItemStack tradeditem = new ItemStack(recipe.getResult().getType(), recipe.getResult().getAmount());
-
-                        MerchantRecipe changedrec = new MerchantRecipe(tradeditem, vuses);
-
-                        changedrec.setUses(uses);
-                        changedrec.setPriceMultiplier(priceMultipler);
-                        changedrec.setExperienceReward(xpReward);
-                        changedrec.setVillagerExperience(xp);
-                        changedrec.addIngredient(currency);
-
-                        villager.setRecipe(pos, changedrec);
-
                     }
 
+                    villager.setRecipe(pos, modifyRecipe(recipe, config));
                 }
-
             }
 
             if (recipe.getResult().getType().equals(Material.ENCHANTED_BOOK)) {
@@ -239,58 +206,87 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
                         String[] book_level = book.split(":");
                         Enchantment enchantment = EnchantmentWrapper.getByKey(NamespacedKey.minecraft(book_level[0]));
                         int level = Integer.parseInt(book_level[1]);
+
+                        if(enchantment == null) {
+                            continue;
+                        }
+
                         if (meta.hasStoredEnchant(enchantment) && meta.getStoredEnchantLevel(enchantment) == level) {
                             book = book.replace(":", "_");
-                            int vrestricted = this.config.getInt(book + ".restricted");
-                            int vchange = this.config.getInt(book + ".change");
-                            String vmaterial = this.config.getString(book + ".material");
-                            int vcost = this.config.getInt(book + ".cost");
-                            int vbook = this.config.getInt(book + ".book");
-                            int vuses = this.config.getInt(book + ".uses");
-                            if (villager.getWorld().getTime() >= this.end && vrestricted == 1) {
-                                if (alert == 1){
-                                p.sendMessage(alertmessage);
+
+                            ConfigurationSection config = this.config
+                                    .getConfigurationSection("enchantments." + book);
+
+                            if(config == null) {
+                                continue;
+                            }
+
+                            if(isTradeRestricted(villager, config.getBoolean("restricted", false))) {
+                                if (alert) {
+                                    p.sendMessage(alertmessage);
                                 }
                                 event.setCancelled(true);
-                            } else {
-                                if (villager.getWorld().getTime() <= this.begin && vrestricted == 1) {
-                                    if (alert == 1){
-                                        p.sendMessage(alertmessage);
-                                    }
-                                    event.setCancelled(true);
-                                }
                             }
-                            if (vchange == 1) {
-                                int uses = recipe.getUses();
-                                float priceMultipler = recipe.getPriceMultiplier();
-                                boolean xpReward = recipe.hasExperienceReward();
-                                int xp = recipe.getVillagerExperience();
 
-                                ItemStack emerald = new ItemStack(Material.getMaterial(vmaterial), vcost);
-                                ItemStack enchantedbook = new ItemStack(recipe.getResult().getType(), 1);
-
-                                enchantedbook.setItemMeta(meta);
-                                MerchantRecipe changedrec = new MerchantRecipe(enchantedbook, vuses);
-
-                                changedrec.setUses(uses);
-                                changedrec.setPriceMultiplier(priceMultipler);
-                                changedrec.setExperienceReward(xpReward);
-                                changedrec.setVillagerExperience(xp);
-                                changedrec.addIngredient(emerald);
-
-                                if(vbook == 1) {
-                                    changedrec.addIngredient(customBook.clone());
-                                } else {
-                                    changedrec.addIngredient(recipe.getIngredients().get(1));
-                                }
-
-                                villager.setRecipe(pos, changedrec);
-                            }
+                            villager.setRecipe(pos, modifyRecipe(recipe, this.config
+                                    .getConfigurationSection("enchantments." + book)));
                         }
                     }
                 }
             }
         }
+    }
+
+    public boolean isTradeRestricted(Villager villager, boolean restrictionsEnabled) {
+        if(!restrictionsEnabled) {
+            return false;
+        }
+
+        long time = villager.getWorld().getTime();
+
+        return time <= this.begin || time >= this.end;
+    }
+
+    public MerchantRecipe modifyRecipe(MerchantRecipe recipe, ConfigurationSection config) {
+        if(config == null) {
+            return recipe;
+        }
+
+        boolean change = config.getBoolean("change", false);
+        Material newCurrency = Material.getMaterial(config.getString("material", ""));
+        int cost = config.getInt("cost", 1);
+        int newUses = config.getInt("uses", 1);
+        boolean useCustomBook = config.getBoolean("book", false);
+
+        if(newCurrency == null) {
+            return recipe;
+        }
+
+        if (change) {
+            int uses = recipe.getUses();
+            float priceMultiplier = recipe.getPriceMultiplier();
+            boolean xpReward = recipe.hasExperienceReward();
+            int xp = recipe.getVillagerExperience();
+
+            ItemStack currency = new ItemStack(newCurrency, cost);
+            MerchantRecipe newRecipe = new MerchantRecipe(recipe.getResult(), uses);
+
+            newRecipe.setUses(newUses);
+            newRecipe.setPriceMultiplier(priceMultiplier);
+            newRecipe.setExperienceReward(xpReward);
+            newRecipe.setVillagerExperience(xp);
+            newRecipe.addIngredient(currency);
+
+            if(useCustomBook) {
+                newRecipe.addIngredient(customBook.clone());
+            } else {
+                newRecipe.addIngredient(recipe.getIngredients().get(1));
+            }
+
+            return newRecipe;
+        }
+
+        return recipe;
     }
 
     @Override
