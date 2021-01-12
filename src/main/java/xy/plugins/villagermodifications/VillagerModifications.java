@@ -14,6 +14,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.Villager;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.VillagerReplenishTradeEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
@@ -37,7 +38,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
 
     private long begin;
     private long end;
-    private long allVillagers;
+    private boolean allVillagers;
     private boolean alert;
 
     private ItemStack customBook;
@@ -77,7 +78,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
 
         this.begin = this.config.getInt("Work.begin");
         this.end = this.config.getInt("Work.end");
-        this.allVillagers = this.config.getLong("allVillagers");
+        this.allVillagers = this.config.getBoolean("allVillagers", false);
         this.alert = this.config.getBoolean("alert.on", false);
         this.alertmessage = this.config.getString("alert.message");
 
@@ -157,7 +158,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
             return;
         }
 
-        if (this.allVillagers == 1) {
+        if (this.allVillagers) {
             if (!villager.getProfession().equals(Villager.Profession.NONE)) {
                 if (isTradeRestricted(villager, true)) {
                     if (alert) {
@@ -181,7 +182,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
 
             for (String item : restricteditems) {
                 if (recipe.getResult().getType().equals(Material.matchMaterial(item))) {
-                    ConfigurationSection config = this.config.getConfigurationSection("CustomItem." + item);
+                    ConfigurationSection config = this.config.getConfigurationSection(item);
 
                     if(config == null) {
                         continue;
@@ -215,7 +216,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
                             book = book.replace(":", "_");
 
                             ConfigurationSection config = this.config
-                                    .getConfigurationSection("enchantments." + book);
+                                    .getConfigurationSection(book);
 
                             if(config == null) {
                                 continue;
@@ -228,12 +229,66 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
                                 event.setCancelled(true);
                             }
 
-                            villager.setRecipe(pos, modifyRecipe(recipe, this.config
-                                    .getConfigurationSection("enchantments." + book)));
+                            villager.setRecipe(pos, modifyRecipe(recipe, config));
                         }
                     }
                 }
             }
+        }
+    }
+
+    @EventHandler
+    public void tradeReplenish(VillagerReplenishTradeEvent event) {
+        MerchantRecipe recipe = event.getRecipe();
+
+        List<String> configbooks = this.config.getStringList("enchantments");
+        List<String> restricteditems = this.config.getStringList("CustomItem");
+
+        int basePrice = recipe.getIngredients().get(0).getAmount();
+        int minPrice = 1;
+        int bonus = event.getBonus();
+
+        for (String item : restricteditems) {
+            if (recipe.getResult().getType().equals(Material.matchMaterial(item))) {
+                ConfigurationSection config = this.config.getConfigurationSection(item);
+
+                if(config == null) {
+                    continue;
+                }
+
+                minPrice = config.getInt("minPrice", 1);
+            }
+        }
+
+        if (recipe.getResult().getType().equals(Material.ENCHANTED_BOOK)) {
+            EnchantmentStorageMeta meta = (EnchantmentStorageMeta) recipe.getResult().getItemMeta();
+
+            for (String book : configbooks) {
+                if (book.contains(":")) {
+                    String[] book_level = book.split(":");
+                    Enchantment enchantment = EnchantmentWrapper.getByKey(NamespacedKey.minecraft(book_level[0]));
+                    int level = Integer.parseInt(book_level[1]);
+
+                    if (enchantment == null) {
+                        continue;
+                    }
+
+                    if (meta.hasStoredEnchant(enchantment) && meta.getStoredEnchantLevel(enchantment) == level) {
+                        book = book.replace(":", "_");
+                        ConfigurationSection config = this.config.getConfigurationSection(book);
+
+                        if (config == null) {
+                            continue;
+                        }
+
+                        minPrice = config.getInt("minPrice", 1);
+                    }
+                }
+            }
+        }
+
+        if(bonus < 0 && (basePrice + bonus) < minPrice) {
+            event.setBonus(-(basePrice - minPrice));
         }
     }
 
