@@ -14,6 +14,7 @@ import org.bukkit.entity.Villager;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.MerchantRecipe;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
@@ -43,8 +44,10 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
     private int alert;
     private String BookTitle;
     private String BookLore;
-    private String widentifier;
-    private String bidentifier;
+
+    private Player whitelistPlayer;
+    private Player blacklistPlayer;
+
     private String alertmessage;
 
 
@@ -64,10 +67,6 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         this.whitelistFile = new File(this.mainPath, "whitelist.yml");
 
         this.config = YamlConfiguration.loadConfiguration(configFile);
-
-        widentifier = " ";
-        bidentifier = " ";
-
         this.whitelistConfig = YamlConfiguration.loadConfiguration(this.whitelistFile);
 
         if (this.whitelistFile.exists()) {
@@ -77,10 +76,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
             this.whitelist.add("placeholder");
             this.whitelistConfig.addDefault("whitelist", whitelist);
             this.whitelistConfig.options().copyDefaults(true);
-
-            try {
-                this.whitelistConfig.save(this.whitelistFile);
-            } catch (IOException ignored) {}
+            this.saveWhitelist();
         }
 
         this.begin = this.config.getInt("Work.begin");
@@ -118,7 +114,32 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         this.whitelistConfig.set("whitelist", whitelist);
         try {
             this.whitelistConfig.save(this.whitelistFile);
-        } catch (IOException var4) {}
+        } catch (IOException e) {
+            getLogger().severe("Failed to save whitelist");
+            e.printStackTrace();
+        }
+    }
+
+    @EventHandler
+    public void quit(PlayerQuitEvent event) {
+        if(event.getPlayer().equals(whitelistPlayer)) {
+            whitelistPlayer = null;
+        }
+
+        if(event.getPlayer().equals(blacklistPlayer)) {
+            blacklistPlayer = null;
+        }
+    }
+
+    @EventHandler
+    public void quit(PlayerQuitEvent event) {
+        if(event.getPlayer().equals(whitelistPlayer)) {
+            whitelistPlayer = null;
+        }
+
+        if(event.getPlayer().equals(blacklistPlayer)) {
+            blacklistPlayer = null;
+        }
     }
 
     @EventHandler
@@ -127,7 +148,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         if (!(event.getRightClicked() instanceof Villager)) return;
         Villager villager = (Villager) event.getRightClicked();
 
-        if (widentifier.equals(p.getName())) {
+        if (whitelistPlayer.equals(p)) {
             if (addToWhitelist(villager)) {
                 p.sendMessage("Villager has been added to the whitelist");
             } else {
@@ -135,8 +156,8 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
             }
         }
 
-        if (bidentifier.equals(p.getName())) {
-             if (removeFromWhitelist(villager)) {
+        if (blacklistPlayer.equals(p)) {
+            if (removeFromWhitelist(villager)) {
                 p.sendMessage("Villager has been removed from the whitelist");
             } else {
                 p.sendMessage("Villager was not found in the whitelist");
@@ -321,82 +342,81 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
             } else {
                 System.out.println("Cannot give book to console");
             }
-
         }
 
         if (command.getName().equals("vmwhitelist")) {
             if (sender instanceof Player) {
                 Player p = (Player) sender;
+
                 if (p.hasPermission("VillagerModification.whitelist")) {
-                    if (bidentifier.equals(" ")) {
+                    if (blacklistPlayer == null) {
                         p.sendMessage("Villager whitelist mode activated");
                         p.sendMessage("Enter /vmoff to deactivate");
-                        widentifier = p.getName();
-                    } if (!bidentifier.equals(" ")) {
+                        whitelistPlayer = p;
+                    } else {
                         p.sendMessage("Whitelist mode has not been activated.");
                         p.sendMessage("Please enter /vmoff before activating this.");
                     }
-
                 } else {
                     p.sendMessage("No permission");
                 }
             } else {
                 System.out.println("Cannot identify UUID in console");
             }
-            return true;
 
+            return true;
         }
 
         if (command.getName().equals("vmoff")) {
             if (sender instanceof Player) {
                 Player p = (Player) sender;
+
                 if (p.hasPermission("VillagerModification.whitelist")) {
-                    if (!widentifier.equals(" ")) {
+                    if (whitelistPlayer != null) {
                         p.sendMessage("Villager whitelist mode deactivated");
-                        widentifier = " ";
+                        whitelistPlayer = null;
                     }
-                    if (!bidentifier.equals(" ")) {
+                    if (blacklistPlayer != null) {
                         p.sendMessage("Villager whitelist removing mode deactivated");
-                        bidentifier = " ";
+                        blacklistPlayer = null;
                     }
-
-
                 } else {
                     p.sendMessage("No permission");
                 }
             } else {
                 System.out.println("Cannot identify UUID in console");
             }
+
             return true;
         }
 
         if (command.getName().equals("vmremove")) {
             if (sender instanceof Player) {
                 Player p = (Player) sender;
+
                 if (p.hasPermission("VillagerModification.whitelist")) {
-                    if (widentifier.equals(" ")) {
+                    if (whitelistPlayer == null) {
                         p.sendMessage("Villager whitelist removing mode activated");
                         p.sendMessage("Enter /vmoff to deactivate");
-                        bidentifier = p.getName();
-                    } if (!widentifier.equals(" ")) {
+                        blacklistPlayer = p;
+                    } else {
                         p.sendMessage("Removal mode has not been activated.");
                         p.sendMessage("Please enter /vmoff before activating this.");
                     }
-
                 } else {
                     p.sendMessage("No permission");
                 }
             } else {
                 System.out.println("Cannot identify UUID in console");
             }
+
             return true;
-
-
         }
 
         if (command.getName().equals("vmtime")) {
             if (sender instanceof Player) {
                 Player p = (Player) sender;
+
                 if (p.hasPermission("VillagerModification.time")) {
                     p.sendMessage("Trades begin at " + begin + " ticks and ends at " + end + " ticks.");
 
@@ -406,12 +426,9 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
             } else {
                 System.out.println("Trades begin at " + begin + " ticks and ends at " + end + " ticks.");
             }
+
             return true;
-
-
-
         }
-
 
         return false;
     }
