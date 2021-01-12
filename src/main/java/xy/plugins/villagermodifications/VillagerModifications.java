@@ -23,10 +23,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 
 public final class VillagerModifications extends JavaPlugin implements Listener {
@@ -37,19 +34,17 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
 
     private List<String> whitelist;
 
-    private String mainPath;
     private long begin;
     private long end;
     private long allVillagers;
     private int alert;
-    private String BookTitle;
-    private String BookLore;
+
+    private ItemStack customBook;
 
     private Player whitelistPlayer;
     private Player blacklistPlayer;
 
     private String alertmessage;
-
 
     @Override
     public void onEnable() {
@@ -61,10 +56,10 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
     }
 
     public void loadSettings() {
-        this.mainPath = this.getDataFolder().getPath() + "/";
+        String mainPath = this.getDataFolder().getPath() + "/";
 
-        File configFile = new File(this.mainPath, "config.yml");
-        this.whitelistFile = new File(this.mainPath, "whitelist.yml");
+        File configFile = new File(mainPath, "config.yml");
+        this.whitelistFile = new File(mainPath, "whitelist.yml");
 
         this.config = YamlConfiguration.loadConfiguration(configFile);
         this.whitelistConfig = YamlConfiguration.loadConfiguration(this.whitelistFile);
@@ -84,8 +79,12 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         this.allVillagers = this.config.getLong("allVillagers");
         this.alert = this.config.getInt("alert.on");
         this.alertmessage = this.config.getString("alert.message");
-        this.BookLore = this.config.getString("Book.Lore");
-        this.BookTitle = this.config.getString("Book.Title");
+
+        customBook = new ItemStack(Material.BOOK, 1);
+        ItemMeta customBookMeta = customBook.getItemMeta();
+        customBookMeta.setLore(Collections.singletonList(this.config.getString("Book.Lore")));
+        customBookMeta.setDisplayName(this.config.getString("Book.Title"));
+        customBook.setItemMeta(customBookMeta);
     }
 
     public boolean addToWhitelist(Villager villager) {
@@ -117,17 +116,6 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         } catch (IOException e) {
             getLogger().severe("Failed to save whitelist");
             e.printStackTrace();
-        }
-    }
-
-    @EventHandler
-    public void quit(PlayerQuitEvent event) {
-        if(event.getPlayer().equals(whitelistPlayer)) {
-            whitelistPlayer = null;
-        }
-
-        if(event.getPlayer().equals(blacklistPlayer)) {
-            blacklistPlayer = null;
         }
     }
 
@@ -191,11 +179,6 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         List<MerchantRecipe> recipes = Lists.newArrayList(villager.getRecipes());
 
         int pos = -1;
-        ItemStack book_item = new ItemStack(Material.BOOK, 1);
-        ItemMeta custom_book = book_item.getItemMeta();
-        custom_book.setLore(Arrays.asList(BookLore));
-        custom_book.setDisplayName(BookTitle);
-
 
         Iterator<MerchantRecipe> recipeIterator;
         for (recipeIterator = recipes.iterator(); recipeIterator.hasNext(); ) {
@@ -285,9 +268,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
 
                                 ItemStack emerald = new ItemStack(Material.getMaterial(vmaterial), vcost);
                                 ItemStack enchantedbook = new ItemStack(recipe.getResult().getType(), 1);
-                                if (vbook == 1) {
-                                    book_item.setItemMeta(custom_book);
-                                }
+
                                 enchantedbook.setItemMeta(meta);
                                 MerchantRecipe changedrec = new MerchantRecipe(enchantedbook, vuses);
 
@@ -296,7 +277,12 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
                                 changedrec.setExperienceReward(xpReward);
                                 changedrec.setVillagerExperience(xp);
                                 changedrec.addIngredient(emerald);
-                                changedrec.addIngredient(book_item);
+
+                                if(vbook == 1) {
+                                    changedrec.addIngredient(customBook.clone());
+                                } else {
+                                    changedrec.addIngredient(recipe.getIngredients().get(1));
+                                }
 
                                 villager.setRecipe(pos, changedrec);
                             }
@@ -330,12 +316,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
                 Player p = (Player) sender;
                 if (p.hasPermission("VillagerModification.reload")) {
                     p.sendMessage("§aBook received.");
-                    ItemStack book = new ItemStack(Material.BOOK, 1);
-                    ItemMeta custom_book = book.getItemMeta();
-                    custom_book.setLore(Arrays.asList(BookLore));
-                    custom_book.setDisplayName(BookTitle);
-                    book.setItemMeta(custom_book);
-                    p.getInventory().addItem(book);
+                    p.getInventory().addItem(customBook.clone());
                 } else {
                     p.sendMessage("No permission");
                 }
