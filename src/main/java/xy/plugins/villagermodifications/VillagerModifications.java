@@ -1,15 +1,12 @@
 package xy.plugins.villagermodifications;
 
-import com.google.common.collect.Lists;
 import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
-import org.bukkit.enchantments.EnchantmentWrapper;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Villager;
 import org.bukkit.event.EventHandler;
@@ -26,7 +23,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-
 
 public final class VillagerModifications extends JavaPlugin implements Listener {
     private File whitelistFile;
@@ -164,76 +160,30 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
                     if (alert) {
                         p.sendMessage(alertmessage);
                     }
+
                     event.setCancelled(true);
                 }
             }
         }
 
-        List<String> configbooks = this.config.getStringList("enchantments");
-        List<String> restricteditems = this.config.getStringList("CustomItem");
-        List<MerchantRecipe> recipes = Lists.newArrayList(villager.getRecipes());
-
         int pos = -1;
+        for (MerchantRecipe recipe : villager.getRecipes()) {
+            pos++;
+            ConfigurationSection modifyConfig = getTradeConfig(recipe);
 
-        Iterator<MerchantRecipe> recipeIterator;
-        for (recipeIterator = recipes.iterator(); recipeIterator.hasNext(); ) {
-            MerchantRecipe recipe = recipeIterator.next();
-            pos = pos + 1;
-
-            for (String item : restricteditems) {
-                if (recipe.getResult().getType().equals(Material.matchMaterial(item))) {
-                    ConfigurationSection config = this.config.getConfigurationSection(item);
-
-                    if(config == null) {
-                        continue;
-                    }
-
-                    if (isTradeRestricted(villager, config.getBoolean("restricted", false))) {
-                        if (alert) {
-                            p.sendMessage(alertmessage);
-                        }
-                        event.setCancelled(true);
-                    }
-
-                    villager.setRecipe(pos, modifyRecipe(recipe, config));
-                }
+            if(modifyConfig == null) {
+                continue;
             }
 
-            if (recipe.getResult().getType().equals(Material.ENCHANTED_BOOK)) {
-                EnchantmentStorageMeta meta = (EnchantmentStorageMeta) recipe.getResult().getItemMeta();
-
-                for (String book : configbooks) {
-                    if (book.contains(":")) {
-                        String[] book_level = book.split(":");
-                        Enchantment enchantment = EnchantmentWrapper.getByKey(NamespacedKey.minecraft(book_level[0]));
-                        int level = Integer.parseInt(book_level[1]);
-
-                        if(enchantment == null) {
-                            continue;
-                        }
-
-                        if (meta.hasStoredEnchant(enchantment) && meta.getStoredEnchantLevel(enchantment) == level) {
-                            book = book.replace(":", "_");
-
-                            ConfigurationSection config = this.config
-                                    .getConfigurationSection(book);
-
-                            if(config == null) {
-                                continue;
-                            }
-
-                            if(isTradeRestricted(villager, config.getBoolean("restricted", false))) {
-                                if (alert) {
-                                    p.sendMessage(alertmessage);
-                                }
-                                event.setCancelled(true);
-                            }
-
-                            villager.setRecipe(pos, modifyRecipe(recipe, config));
-                        }
-                    }
+            if (isTradeRestricted(villager, config.getBoolean("restricted", false))) {
+                if (alert) {
+                    p.sendMessage(alertmessage);
                 }
+
+                event.setCancelled(true);
             }
+
+            villager.setRecipe(pos, modifyRecipe(recipe, modifyConfig));
         }
     }
 
@@ -241,55 +191,42 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
     public void tradeReplenish(VillagerReplenishTradeEvent event) {
         MerchantRecipe recipe = event.getRecipe();
 
-        List<String> configbooks = this.config.getStringList("enchantments");
-        List<String> restricteditems = this.config.getStringList("CustomItem");
-
         int basePrice = recipe.getIngredients().get(0).getAmount();
-        int minPrice = 1;
+        int minPrice;
         int bonus = event.getBonus();
 
-        for (String item : restricteditems) {
-            if (recipe.getResult().getType().equals(Material.matchMaterial(item))) {
-                ConfigurationSection config = this.config.getConfigurationSection(item);
+        ConfigurationSection modifyConfig = getTradeConfig(recipe);
 
-                if(config == null) {
-                    continue;
-                }
-
-                minPrice = config.getInt("minPrice", 1);
-            }
+        if(modifyConfig == null) {
+            return;
         }
 
-        if (recipe.getResult().getType().equals(Material.ENCHANTED_BOOK)) {
-            EnchantmentStorageMeta meta = (EnchantmentStorageMeta) recipe.getResult().getItemMeta();
-
-            for (String book : configbooks) {
-                if (book.contains(":")) {
-                    String[] book_level = book.split(":");
-                    Enchantment enchantment = EnchantmentWrapper.getByKey(NamespacedKey.minecraft(book_level[0]));
-                    int level = Integer.parseInt(book_level[1]);
-
-                    if (enchantment == null) {
-                        continue;
-                    }
-
-                    if (meta.hasStoredEnchant(enchantment) && meta.getStoredEnchantLevel(enchantment) == level) {
-                        book = book.replace(":", "_");
-                        ConfigurationSection config = this.config.getConfigurationSection(book);
-
-                        if (config == null) {
-                            continue;
-                        }
-
-                        minPrice = config.getInt("minPrice", 1);
-                    }
-                }
-            }
-        }
+        minPrice = config.getInt("minPrice", 1);
 
         if(bonus < 0 && (basePrice + bonus) < minPrice) {
             event.setBonus(-(basePrice - minPrice));
         }
+    }
+
+    public ConfigurationSection getTradeConfig(MerchantRecipe recipe) {
+        ItemStack target = recipe.getResult();
+
+        if (target.getType().equals(Material.ENCHANTED_BOOK)) {
+            EnchantmentStorageMeta meta = (EnchantmentStorageMeta) target.getItemMeta();
+
+            for (Enchantment enchantment : meta.getStoredEnchants().keySet()) {
+                ConfigurationSection config = this.config.getConfigurationSection(
+                        enchantment.getKey().getKey() + "_" + meta.getStoredEnchantLevel(enchantment));
+
+                if (config != null) {
+                    return config;
+                }
+            }
+
+            return null;
+        }
+
+        return this.config.getConfigurationSection(target.getType().toString());
     }
 
     public boolean isTradeRestricted(Villager villager, boolean restrictionsEnabled) {
@@ -311,7 +248,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         Material newCurrency = Material.getMaterial(config.getString("material", ""));
         int cost = config.getInt("cost", 1);
         int newUses = config.getInt("uses", 1);
-        boolean useCustomBook = config.getBoolean("book", false);
+        boolean useCustomBook = config.getBoolean("change", false);
 
         if(newCurrency == null) {
             return recipe;

@@ -23,36 +23,9 @@ alert:
   on: false
   message: "This villager is outside of it's work times"
 
-
-
 # allVillagers: Value of 0 by default means that only villagers with trades containing restricted books are bound by Work begin and Work end.
 #Set to 1 for all villagers to be restricted.
-
 allVillagers: false
-
-
-
-# CustomItem: Add the bukkit name of any item here that villagers sell to alter its trade.
-#Copy the example of clock at the bottom of the config in order to edit the changes to the trade.
-
-CustomItem:
-  - "CLOCK"
-  - "COAL_ORE"
-
-
-
-# enchantments: Enter any enchantments here and then their corresponding restrictions below
-#Please ensure that all enchantments are spelt correctly and have the level following a colon after them
-#Use underscores for all spaces in enchantment names
-#Enchantments with no level normally attached to them should be written as 'silk_touch:1"
-
-enchantments:
-  - "mending:1"
-  - "silk_touch:1"
-  - "efficiency:5"
-  - "efficiency:4"
-  - "fortune:3"
-  - "unbreaking:3"
 
 # Book-Title: Controls the title of the book in the 'book' control for trades
 # Book-Lore: Controls the lore of the book in the 'book' control for trades.
