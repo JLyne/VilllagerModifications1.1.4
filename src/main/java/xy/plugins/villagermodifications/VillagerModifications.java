@@ -17,7 +17,6 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.MerchantRecipe;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -193,7 +192,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
             return;
         }
 
-        minPrice = config.getInt("minPrice", 1);
+        minPrice = modifyConfig.getInt("item1.minCost", 1);
 
         if(bonus < 0 && (basePrice + bonus) < minPrice) {
             event.setBonus(-(basePrice - minPrice));
@@ -237,33 +236,46 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         }
 
         boolean change = config.getBoolean("change", false);
-        Material newCurrency = Material.getMaterial(config.getString("material", ""));
-        int cost = config.getInt("cost", 1);
-        int newUses = config.getInt("uses", 1);
-
-        if(newCurrency == null) {
-            return recipe;
-        }
 
         if (change) {
-            int uses = recipe.getUses();
-            float priceMultiplier = recipe.getPriceMultiplier();
-            boolean xpReward = recipe.hasExperienceReward();
-            int xp = recipe.getVillagerExperience();
+            ConfigurationSection item1Config = config.getConfigurationSection("item1");
+            ConfigurationSection item2Config = config.getConfigurationSection("item2");
+            ConfigurationSection resultConfig = config.getConfigurationSection("result");
 
-            ItemStack currency = new ItemStack(newCurrency, cost);
-            MerchantRecipe newRecipe = new MerchantRecipe(recipe.getResult(), uses);
+            ItemStack item1 = recipe.getIngredients().get(0);
+            ItemStack item2 = recipe.getIngredients().get(1);
+            ItemStack result = recipe.getResult();
 
-            newRecipe.setUses(newUses);
-            newRecipe.setPriceMultiplier(priceMultiplier);
-            newRecipe.setExperienceReward(xpReward);
-            newRecipe.setVillagerExperience(xp);
-            newRecipe.addIngredient(currency);
+            item1 = getTradeIngredient(item1Config, item1);
+            item2 = getTradeIngredient(item2Config, item2);
+            result = getTradeIngredient(resultConfig, result);
+
+            MerchantRecipe newRecipe = new MerchantRecipe(result, config.getInt("uses", recipe.getUses()));
+
+            newRecipe.setPriceMultiplier(recipe.getPriceMultiplier());
+            newRecipe.setExperienceReward(recipe.hasExperienceReward());
+            newRecipe.setVillagerExperience(recipe.getVillagerExperience());
+            newRecipe.addIngredient(item1);
+            newRecipe.addIngredient(item2);
 
             return newRecipe;
         }
 
         return recipe;
+    }
+
+    private ItemStack getTradeIngredient(ConfigurationSection config, ItemStack originalItem) {
+        if(config != null) {
+            Material material = Material.getMaterial(config.getString("material", ""));
+
+            if(material != null) {
+                originalItem = new ItemStack(material, config.getInt("cost", 1));
+            } else {
+                originalItem = originalItem.clone();
+                originalItem.setAmount(config.getInt("cost", originalItem.getAmount()));
+            }
+        }
+        return originalItem;
     }
 
     @Override

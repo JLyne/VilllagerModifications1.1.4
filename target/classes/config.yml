@@ -49,8 +49,9 @@ allVillagers: false
 mending_1:
   restricted: false
   change: false
-  material: EMERALD
-  cost: 64
+  item1:
+    material: EMERALD
+    cost: 64
   uses: 1
 
 
@@ -59,8 +60,9 @@ mending_1:
 silk_touch_1:
   restricted: false
   change: false
-  material: EMERALD
-  cost: 34
+  item1:
+    material: EMERALD
+    cost: 34
   uses: 1
 
 
@@ -69,8 +71,9 @@ silk_touch_1:
 fortune_3:
   restricted: false
   change: false
-  material: EMERALD
-  cost: 64
+  item1:
+    material: EMERALD
+    cost: 64
   uses: 1
 
 
@@ -79,8 +82,9 @@ fortune_3:
 unbreaking_3:
   restricted: false
   change: false
-  material: EMERALD
-  cost: 64
+  item1:
+    material: EMERALD
+    cost: 64
   uses: 1
 
 
@@ -89,8 +93,9 @@ unbreaking_3:
 efficiency_5:
   restricted: false
   change: false
-  material: EMERALD
-  cost: 64
+  item1:
+    material: EMERALD
+    cost: 64
   uses: 1
 
 
@@ -99,13 +104,15 @@ efficiency_5:
 efficiency_4:
   restricted: false
   change: false
-  material: EMERALD
-  cost: 64
+  item1:
+    material: EMERALD
+    cost: 64
   uses: 1
 
 CLOCK:
   restricted: false
   change: false
-  material: EMERALD
-  cost: 64
+  item1:
+    material: EMERALD
+    cost: 64
   uses: 1
