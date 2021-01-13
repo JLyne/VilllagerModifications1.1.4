@@ -37,8 +37,6 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
     private boolean allVillagers;
     private boolean alert;
 
-    private ItemStack customBook;
-
     private Player whitelistPlayer;
     private Player blacklistPlayer;
 
@@ -77,12 +75,6 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         this.allVillagers = this.config.getBoolean("allVillagers", false);
         this.alert = this.config.getBoolean("alert.on", false);
         this.alertmessage = this.config.getString("alert.message");
-
-        customBook = new ItemStack(Material.BOOK, 1);
-        ItemMeta customBookMeta = customBook.getItemMeta();
-        customBookMeta.setLore(Collections.singletonList(this.config.getString("Book.Lore")));
-        customBookMeta.setDisplayName(this.config.getString("Book.Title"));
-        customBook.setItemMeta(customBookMeta);
     }
 
     public boolean addToWhitelist(Villager villager) {
@@ -248,7 +240,6 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         Material newCurrency = Material.getMaterial(config.getString("material", ""));
         int cost = config.getInt("cost", 1);
         int newUses = config.getInt("uses", 1);
-        boolean useCustomBook = config.getBoolean("book", false);
 
         if(newCurrency == null) {
             return recipe;
@@ -268,12 +259,6 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
             newRecipe.setExperienceReward(xpReward);
             newRecipe.setVillagerExperience(xp);
             newRecipe.addIngredient(currency);
-
-            if(useCustomBook) {
-                newRecipe.addIngredient(customBook.clone());
-            } else {
-                newRecipe.addIngredient(recipe.getIngredients().get(1));
-            }
 
             return newRecipe;
         }
@@ -297,20 +282,6 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
                 this.loadSettings();
             }
             return true;
-        }
-
-        if (command.getName().equals("vmbook")) {
-            if (sender instanceof Player) {
-                Player p = (Player) sender;
-                if (p.hasPermission("VillagerModification.reload")) {
-                    p.sendMessage("§aBook received.");
-                    p.getInventory().addItem(customBook.clone());
-                } else {
-                    p.sendMessage("No permission");
-                }
-            } else {
-                System.out.println("Cannot give book to console");
-            }
         }
 
         if (command.getName().equals("vmwhitelist")) {

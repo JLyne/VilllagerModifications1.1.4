@@ -3,7 +3,6 @@
 # By: Xyaafol                                                                                         #
 # Commands:                                                                                           #
 # /vmreload - Reloads the plugin with settings changed in this file. Requires OP.                     #
-# /vmbook - Gives the player a book example of the book used for the book restriction. Requires OP.   #
 #######################################################################################################
 
 # begin: Time in ticks that villagers can be traded from (day starts at 1000 ticks). Set to 2000 by default.
@@ -23,42 +22,9 @@ alert:
   on: false
   message: "This villager is outside of it's work times"
 
-
-
 # allVillagers: Value of 0 by default means that only villagers with trades containing restricted books are bound by Work begin and Work end.
 #Set to 1 for all villagers to be restricted.
-
 allVillagers: false
-
-
-
-# CustomItem: Add the bukkit name of any item here that villagers sell to alter its trade.
-#Copy the example of clock at the bottom of the config in order to edit the changes to the trade.
-
-CustomItem:
-  - "CLOCK"
-  - "COAL_ORE"
-
-
-
-# enchantments: Enter any enchantments here and then their corresponding restrictions below
-#Please ensure that all enchantments are spelt correctly and have the level following a colon after them
-#Use underscores for all spaces in enchantment names
-#Enchantments with no level normally attached to them should be written as 'silk_touch:1"
-
-enchantments:
-  - "mending:1"
-  - "silk_touch:1"
-  - "efficiency:5"
-  - "efficiency:4"
-  - "fortune:3"
-  - "unbreaking:3"
-
-# Book-Title: Controls the title of the book in the 'book' control for trades
-# Book-Lore: Controls the lore of the book in the 'book' control for trades.
-Book:
-  Title: "§aVillager Trade Book"
-  Lore: "Trade Value:1"
 
 # mending: Copy this block of code and change the enchantment name to any that you would like to control.
 #Use the same name as under enchantments but with the colon replaced with an underscore.
@@ -75,9 +41,6 @@ Book:
 # cost: Number of the material item needed for the trade.
 #Value of 64 by default. Obeys default material stack count.
 
-# book: Changes book needed for the trade to a custom book. Set to 0 for normal book trade.
-#Value of 0 by default. Used for making mending trades only possible with create or kit rewards. Use /vmbook to recieve a copy for setup.
-
 # uses:Number of times the trade can be used before the villager restocks.
 #Anywhere from 0 for cant trade at all to 9999 for infinite trades. Default 1.
 #Villagers will still restock up to 2 times per day.
@@ -88,7 +51,6 @@ mending_1:
   change: false
   material: EMERALD
   cost: 64
-  book: false
   uses: 1
 
 
@@ -99,7 +61,6 @@ silk_touch_1:
   change: false
   material: EMERALD
   cost: 34
-  book: false
   uses: 1
 
 
@@ -110,7 +71,6 @@ fortune_3:
   change: false
   material: EMERALD
   cost: 64
-  book: false
   uses: 1
 
 
@@ -121,7 +81,6 @@ unbreaking_3:
   change: false
   material: EMERALD
   cost: 64
-  book: false
   uses: 1
 
 
@@ -132,7 +91,6 @@ efficiency_5:
   change: false
   material: EMERALD
   cost: 64
-  book: false
   uses: 1
 
 
@@ -143,11 +101,7 @@ efficiency_4:
   change: false
   material: EMERALD
   cost: 64
-  book: false
   uses: 1
-
-
-#Example for custom item restriction. Does not have the option for 'book' as most trades are just emeralds.
 
 CLOCK:
   restricted: false
