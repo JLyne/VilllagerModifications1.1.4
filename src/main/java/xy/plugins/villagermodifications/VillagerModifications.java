@@ -248,7 +248,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         Material newCurrency = Material.getMaterial(config.getString("material", ""));
         int cost = config.getInt("cost", 1);
         int newUses = config.getInt("uses", 1);
-        boolean useCustomBook = config.getBoolean("change", false);
+        boolean useCustomBook = config.getBoolean("book", false);
 
         if(newCurrency == null) {
             return recipe;
