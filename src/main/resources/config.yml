@@ -5,27 +5,6 @@
 # /vmreload - Reloads the plugin with settings changed in this file. Requires OP.                     #
 #######################################################################################################
 
-# begin: Time in ticks that villagers can be traded from (day starts at 1000 ticks). Set to 2000 by default.
-# end: time in ticks that villagers can be traded until (night starts at 13000 ticks). Set to 8999 by default.
-# alert: sends a message to the player if enabled to tell them that the villager is ony available during work hours.
-
-Work:
-  begin: 2000
-  end: 8999
-
-
-# alert: Sends an alert to the players when they interact with an unavailable villager.
-# on: 0 for off, 1 for on.
-# message: The alert that will be sent to the player if alert is on.
-
-alert:
-  on: false
-  message: "This villager is outside of it's work times"
-
-# allVillagers: Value of 0 by default means that only villagers with trades containing restricted books are bound by Work begin and Work end.
-#Set to 1 for all villagers to be restricted.
-allVillagers: false
-
 buying:
 
 selling:

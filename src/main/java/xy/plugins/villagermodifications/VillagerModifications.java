@@ -31,15 +31,8 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
 
     private List<String> whitelist;
 
-    private long begin;
-    private long end;
-    private boolean allVillagers;
-    private boolean alert;
-
     private Player whitelistPlayer;
     private Player blacklistPlayer;
-
-    private String alertmessage;
 
     @Override
     public void onEnable() {
@@ -68,12 +61,6 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
             this.whitelistConfig.options().copyDefaults(true);
             this.saveWhitelist();
         }
-
-        this.begin = this.config.getInt("Work.begin");
-        this.end = this.config.getInt("Work.end");
-        this.allVillagers = this.config.getBoolean("allVillagers", false);
-        this.alert = this.config.getBoolean("alert.on", false);
-        this.alertmessage = this.config.getString("alert.message");
     }
 
     public boolean addToWhitelist(Villager villager) {
@@ -145,18 +132,6 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
             return;
         }
 
-        if (this.allVillagers) {
-            if (!villager.getProfession().equals(Villager.Profession.NONE)) {
-                if (isTradeRestricted(villager, true)) {
-                    if (alert) {
-                        p.sendMessage(alertmessage);
-                    }
-
-                    event.setCancelled(true);
-                }
-            }
-        }
-
         int pos = -1;
         for (MerchantRecipe recipe : villager.getRecipes()) {
             pos++;
@@ -168,14 +143,6 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
 
             if(modifyConfig == null) {
                 continue;
-            }
-
-            if (isTradeRestricted(villager, config.getBoolean("restricted", false))) {
-                if (alert) {
-                    p.sendMessage(alertmessage);
-                }
-
-                event.setCancelled(true);
             }
 
             villager.setRecipe(pos, modifyRecipe(recipe, modifyConfig));
@@ -227,16 +194,6 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         }
 
         return this.config.getConfigurationSection(prefix + target.getType().toString());
-    }
-
-    public boolean isTradeRestricted(Villager villager, boolean restrictionsEnabled) {
-        if(!restrictionsEnabled) {
-            return false;
-        }
-
-        long time = villager.getWorld().getTime();
-
-        return time <= this.begin || time >= this.end;
     }
 
     public MerchantRecipe modifyRecipe(MerchantRecipe recipe, ConfigurationSection config) {
@@ -370,23 +327,6 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
                 }
             } else {
                 System.out.println("Cannot identify UUID in console");
-            }
-
-            return true;
-        }
-
-        if (command.getName().equals("vmtime")) {
-            if (sender instanceof Player) {
-                Player p = (Player) sender;
-
-                if (p.hasPermission("VillagerModification.time")) {
-                    p.sendMessage("Trades begin at " + begin + " ticks and ends at " + end + " ticks.");
-
-                } else {
-                    p.sendMessage("No permission");
-                }
-            } else {
-                System.out.println("Trades begin at " + begin + " ticks and ends at " + end + " ticks.");
             }
 
             return true;

@@ -25,7 +25,3 @@ commands:
   vmremove:
     description: Toggles the ability to remove villagers from the whitelist by interacting with them.
     usage: /<command>
-
-  vmtime:
-    description: Sends a message to the user displaying the time in ticks that villagers are set to. Used for debugging only - not intended for players.
-    usage: /<command>
