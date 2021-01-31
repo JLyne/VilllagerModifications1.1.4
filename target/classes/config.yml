@@ -5,6 +5,10 @@
 # /vmreload - Reloads the plugin with settings changed in this file. Requires OP.                     #
 #######################################################################################################
 
+enchantments:
+  min-villager-levels:
+    mending: 4
+
 buying:
 
 selling:

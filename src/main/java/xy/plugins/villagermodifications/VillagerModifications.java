@@ -1,6 +1,7 @@
 package xy.plugins.villagermodifications;
 
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
@@ -17,11 +18,13 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.MerchantRecipe;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public final class VillagerModifications extends JavaPlugin implements Listener {
     private File whitelistFile;
@@ -30,9 +33,13 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
     private FileConfiguration whitelistConfig;
 
     private List<String> whitelist;
+    private Map<Enchantment, Integer> minEnchantLevels;
 
     private Player whitelistPlayer;
     private Player blacklistPlayer;
+
+    private final Random random = new Random();
+    private NamespacedKey lastCheckedBookIndex; //Last recipe index checked for book level changes
 
     @Override
     public void onEnable() {
@@ -41,6 +48,8 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         this.loadSettings();
         System.out.println("Villager Modifiers are running");
         getServer().getPluginManager().registerEvents(this, this);
+
+        lastCheckedBookIndex = new NamespacedKey(this, "last-checked-book-index");
     }
 
     public void loadSettings() {
@@ -51,6 +60,22 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
 
         this.config = YamlConfiguration.loadConfiguration(configFile);
         this.whitelistConfig = YamlConfiguration.loadConfiguration(this.whitelistFile);
+        this.minEnchantLevels = new HashMap<>();
+
+        ConfigurationSection minVillagerLevels = this.config.getConfigurationSection("enchantments.min-villager-levels");
+
+        if(minVillagerLevels != null) {
+            minVillagerLevels.getKeys(false).forEach((String key) -> {
+                Enchantment enchantment = Enchantment.getByKey(NamespacedKey.minecraft(key));
+
+                if(enchantment != null) {
+                    getLogger().info(key + ": " + minVillagerLevels.getInt(key, 1));
+                    this.minEnchantLevels.put(enchantment, minVillagerLevels.getInt(key, 1));
+                } else {
+                    getLogger().warning("Invalid enchantment " + key);
+                }
+            });
+        }
 
         if (this.whitelistFile.exists()) {
             this.whitelist = this.whitelistConfig.getStringList("whitelist");
@@ -131,6 +156,8 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         if (whitelist.contains(villager.getUniqueId().toString())) {
             return;
         }
+
+        checkBookTrades(villager);
 
         int pos = -1;
         for (MerchantRecipe recipe : villager.getRecipes()) {
@@ -243,6 +270,155 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
             }
         }
         return originalItem;
+    }
+
+    private void checkBookTrades(Villager villager) {
+        int villagerLevel = villager.getVillagerLevel();
+        Set<Enchantment> disallowed = new HashSet<>(); //Tracks already present enchantments to prevent multiple offers for the same type
+        int lastCheckedIndex;
+
+        if (villager.getPersistentDataContainer().has(lastCheckedBookIndex, PersistentDataType.INTEGER)) {
+            lastCheckedIndex = villager.getPersistentDataContainer().get(lastCheckedBookIndex, PersistentDataType.INTEGER);
+        } else {
+            lastCheckedIndex = -1;
+        }
+
+        int pos = -1;
+        for (MerchantRecipe recipe : villager.getRecipes()) {
+            boolean changed = false;
+            pos++;
+
+            if(pos <= lastCheckedIndex) {
+                getLogger().info("Skpping recipe " + pos + " as already checked before");
+                continue;
+            }
+
+            ItemStack result = recipe.getResult();
+
+            if (!result.getType().equals(Material.ENCHANTED_BOOK)) {
+                continue;
+            }
+
+            EnchantmentStorageMeta meta = (EnchantmentStorageMeta) result.getItemMeta();
+            getLogger().info("--------------------------------------");
+            getLogger().info("Checking book trade " + meta.toString());
+
+            for (Enchantment enchantment : meta.getStoredEnchants().keySet()) {
+                int level = meta.getStoredEnchantLevel(enchantment);
+                getLogger().info("Checking enchant: " + enchantment.toString() + ":" + level);
+
+                //Enchantment type isn't allowed, replace with another
+                if(!isEnchantmentAllowed(enchantment, villagerLevel, disallowed)) {
+                    getLogger().info("Enchantment not allowed. Replacing");
+                    meta.removeStoredEnchant(enchantment);
+
+                    Enchantment replacement = getEnchantment(villagerLevel, disallowed);
+                    List<Integer> range = getEnchantmentLevelRange(replacement, villagerLevel);
+                    int replacementLevel = range.get(random.nextInt(range.size()));
+
+                    getLogger().info("Replaced with: " + replacement.toString() + ":" + replacementLevel);
+
+                    disallowed.add(replacement);
+                    meta.addStoredEnchant(replacement, replacementLevel, false);
+                    changed = true;
+                } else {
+                    List<Integer> allowedLevels = getEnchantmentLevelRange(enchantment, villagerLevel);
+
+                    //Enchantment level isn't allowed, change level
+                    if(!allowedLevels.contains(level)) {
+                        getLogger().info("Level " + level + " not allowed. Replacing");
+                        int replacementLevel = allowedLevels.get(random.nextInt(allowedLevels.size()));
+
+                        getLogger().info("Replaced with: " + replacementLevel);
+                        meta.removeStoredEnchant(enchantment);
+                        meta.addStoredEnchant(enchantment, replacementLevel, false);
+                        changed = true;
+                    } else {
+                        getLogger().info("Everything is cool");
+                    }
+
+                    disallowed.add(enchantment);
+                }
+            }
+
+            if(changed) {
+                result.setItemMeta(meta);
+                MerchantRecipe newRecipe = new MerchantRecipe(result, recipe.getMaxUses());
+
+                newRecipe.setUses(recipe.getUses());
+                newRecipe.setPriceMultiplier(recipe.getPriceMultiplier());
+                newRecipe.setExperienceReward(recipe.hasExperienceReward());
+                newRecipe.setVillagerExperience(recipe.getVillagerExperience());
+                newRecipe.setIngredients(recipe.getIngredients());
+
+                villager.setRecipe(pos, newRecipe);
+            }
+        }
+
+        villager.getPersistentDataContainer().set(lastCheckedBookIndex, PersistentDataType.INTEGER, pos);
+    }
+
+    private boolean isEnchantmentAllowed(Enchantment enchantment, int villagerLevel, Set<Enchantment> disallowed) {
+        if(disallowed.contains(enchantment)) {
+            return false;
+        }
+
+        return villagerLevel >= minEnchantLevels.getOrDefault(enchantment, 1);
+    }
+
+    private Enchantment getEnchantment(int villagerLevel, Set<Enchantment> disallowed) {
+        List<Enchantment> allowedEnchantments = Arrays.stream(Enchantment.values())
+                .filter((Enchantment enchantment) ->
+                                !enchantment.equals(Enchantment.SOUL_SPEED) &&
+                                        !disallowed.contains(enchantment) &&
+                                        minEnchantLevels.getOrDefault(enchantment, 1) <= villagerLevel)
+                .collect(Collectors.toList());
+
+        return allowedEnchantments.get(random.nextInt(allowedEnchantments.size()));
+    }
+
+    private List <Integer> getEnchantmentLevelRange(Enchantment enchantment, int villagerLevel) {
+        List <Integer> range = new ArrayList <>();
+        int minVillagerLevel = config.getInt("enchantments.min-villager-levels." + enchantment.getKey().getKey(), 1);
+
+        if(villagerLevel < minVillagerLevel) {
+            getLogger().info(range.toString());
+            return range;
+        }
+
+        if(enchantment.getMaxLevel() == 1) {
+            range.add(1);
+            getLogger().info(range.toString());
+            return range;
+        }
+
+        //(number of villager levels above the min required) / (total number of villager levels allowing the enchantment)
+        //Multiplied by max enchant level and rounded to get base level
+        int baseLevel = Math.max(1, Math.round(enchantment.getMaxLevel() *
+                                           ((villagerLevel - minVillagerLevel) / (float) (4 - minVillagerLevel))));
+
+        range.add(baseLevel);
+
+        //If the enchantment has less levels than required to fill all allowed villager levels
+        //and current villager level is the min required for this enchantment
+        //limit range to lowest level
+        if(enchantment.getMaxLevel() <= (4 - minVillagerLevel) && villagerLevel == minVillagerLevel) {
+            getLogger().info(range.toString());
+            return range;
+        }
+
+        //Otherwise add levels above and below to range, if possible
+        if(baseLevel > 1) {
+            range.add(baseLevel - 1);
+        }
+
+        if(baseLevel < enchantment.getMaxLevel()) {
+            range.add(baseLevel + 1);
+        }
+
+        getLogger().info(range.toString());
+
+        return range;
     }
 
     @Override
