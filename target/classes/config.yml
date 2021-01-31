@@ -26,93 +26,76 @@ alert:
 #Set to 1 for all villagers to be restricted.
 allVillagers: false
 
-# mending: Copy this block of code and change the enchantment name to any that you would like to control.
-#Use the same name as under enchantments but with the colon replaced with an underscore.
+buying:
 
-# restricted: Controls if villagers with this enchanted book follow the begin and end times above.
-#Value of 0 by default for work time restrictions active on mending. Set to 0 for time restrictions off.
-
-# change: Controls if villagers with this enchanted book have the trade containing said book changed to the following material, cost, book, and uses set below.
-#Value of 0 by default, set to 1 to activate changed trades.
-
-# material: Controls the item that is used in place of emeralds in the trade. Must be all caps and offical bukkit names.
-#Default EMERALD, examples; EMERALD_BLOCK, DIAMOND, DIAMOND_BLOCK
-
-# cost: Number of the material item needed for the trade.
-#Value of 64 by default. Obeys default material stack count.
-
-# uses:Number of times the trade can be used before the villager restocks.
-#Anywhere from 0 for cant trade at all to 9999 for infinite trades. Default 1.
-#Villagers will still restock up to 2 times per day.
+selling:
+  mending_1:
+    restricted: false
+    change: false
+    item1:
+      material: EMERALD
+      cost: 64
+    uses: 1
 
 
-mending_1:
-  restricted: false
-  change: false
-  item1:
-    material: EMERALD
-    cost: 64
-  uses: 1
+  # silk_touch: All configs under this heading effect villagers with silk touch trades.
+
+  silk_touch_1:
+    restricted: false
+    change: false
+    item1:
+      material: EMERALD
+      cost: 34
+    uses: 1
 
 
-# silk_touch: All configs under this heading effect villagers with silk touch trades.
+  # fortune_3: All configs under this heading effect villagers with fortune 3 trades.
 
-silk_touch_1:
-  restricted: false
-  change: false
-  item1:
-    material: EMERALD
-    cost: 34
-  uses: 1
-
-
-# fortune_3: All configs under this heading effect villagers with fortune 3 trades.
-
-fortune_3:
-  restricted: false
-  change: false
-  item1:
-    material: EMERALD
-    cost: 64
-  uses: 1
+  fortune_3:
+    restricted: false
+    change: false
+    item1:
+      material: EMERALD
+      cost: 64
+    uses: 1
 
 
-# unbreaking_3: All configs under this heading effect villagers with unbreaking 3 trades.
+  # unbreaking_3: All configs under this heading effect villagers with unbreaking 3 trades.
 
-unbreaking_3:
-  restricted: false
-  change: false
-  item1:
-    material: EMERALD
-    cost: 64
-  uses: 1
-
-
-# efficiency_5: All configs under this heading effect villagers with efficiency 5 trades.
-
-efficiency_5:
-  restricted: false
-  change: false
-  item1:
-    material: EMERALD
-    cost: 64
-  uses: 1
+  unbreaking_3:
+    restricted: false
+    change: false
+    item1:
+      material: EMERALD
+      cost: 64
+    uses: 1
 
 
-# efficiency_4: All configs under this heading effect villagers with efficiency 4 trades.
+  # efficiency_5: All configs under this heading effect villagers with efficiency 5 trades.
 
-efficiency_4:
-  restricted: false
-  change: false
-  item1:
-    material: EMERALD
-    cost: 64
-  uses: 1
+  efficiency_5:
+    restricted: false
+    change: false
+    item1:
+      material: EMERALD
+      cost: 64
+    uses: 1
 
-CLOCK:
-  restricted: false
-  change: false
-  item1:
-    material: EMERALD
-    cost: 64
-  uses: 1
+
+  # efficiency_4: All configs under this heading effect villagers with efficiency 4 trades.
+
+  efficiency_4:
+    restricted: false
+    change: false
+    item1:
+      material: EMERALD
+      cost: 64
+    uses: 1
+
+  CLOCK:
+    restricted: false
+    change: false
+    item1:
+      material: EMERALD
+      cost: 64
+    uses: 1

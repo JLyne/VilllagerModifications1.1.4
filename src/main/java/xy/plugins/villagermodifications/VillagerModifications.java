@@ -160,7 +160,11 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         int pos = -1;
         for (MerchantRecipe recipe : villager.getRecipes()) {
             pos++;
-            ConfigurationSection modifyConfig = getTradeConfig(recipe);
+            ConfigurationSection modifyConfig = getTradeConfig(recipe, TradeType.SELLING);
+
+            if(modifyConfig == null) {
+                modifyConfig = getTradeConfig(recipe, TradeType.BUYING);
+            }
 
             if(modifyConfig == null) {
                 continue;
@@ -186,7 +190,11 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         int minPrice;
         int bonus = event.getBonus();
 
-        ConfigurationSection modifyConfig = getTradeConfig(recipe);
+        ConfigurationSection modifyConfig = getTradeConfig(recipe, TradeType.SELLING);
+
+        if(modifyConfig == null) {
+            modifyConfig = getTradeConfig(recipe, TradeType.BUYING);
+        }
 
         if(modifyConfig == null) {
             return;
@@ -199,15 +207,16 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         }
     }
 
-    public ConfigurationSection getTradeConfig(MerchantRecipe recipe) {
-        ItemStack target = recipe.getResult();
+    public ConfigurationSection getTradeConfig(MerchantRecipe recipe, TradeType tradeType) {
+        String prefix = tradeType.toString().toLowerCase() + ".";
+        ItemStack target = tradeType == TradeType.SELLING ? recipe.getResult() : recipe.getIngredients().get(0);
 
         if (target.getType().equals(Material.ENCHANTED_BOOK)) {
             EnchantmentStorageMeta meta = (EnchantmentStorageMeta) target.getItemMeta();
 
             for (Enchantment enchantment : meta.getStoredEnchants().keySet()) {
                 ConfigurationSection config = this.config.getConfigurationSection(
-                        enchantment.getKey().getKey() + "_" + meta.getStoredEnchantLevel(enchantment));
+                        prefix + enchantment.getKey().getKey() + "_" + meta.getStoredEnchantLevel(enchantment));
 
                 if (config != null) {
                     return config;
@@ -217,7 +226,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
             return null;
         }
 
-        return this.config.getConfigurationSection(target.getType().toString());
+        return this.config.getConfigurationSection(prefix + target.getType().toString());
     }
 
     public boolean isTradeRestricted(Villager villager, boolean restrictionsEnabled) {
@@ -252,6 +261,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
 
             MerchantRecipe newRecipe = new MerchantRecipe(result, config.getInt("uses", recipe.getUses()));
 
+            newRecipe.setUses(recipe.getUses());
             newRecipe.setPriceMultiplier(recipe.getPriceMultiplier());
             newRecipe.setExperienceReward(recipe.hasExperienceReward());
             newRecipe.setVillagerExperience(recipe.getVillagerExperience());
@@ -383,5 +393,10 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         }
 
         return false;
+    }
+
+    private enum TradeType {
+        BUYING,
+        SELLING
     }
 }
