@@ -33,6 +33,9 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
     private FileConfiguration whitelistConfig;
 
     private List<String> whitelist;
+
+    private boolean limitBookMinPrices;
+    private boolean limitBookMaxTrades;
     private Map<Enchantment, Integer> minEnchantLevels;
 
     private Player whitelistPlayer;
@@ -63,6 +66,8 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         this.minEnchantLevels = new HashMap<>();
 
         ConfigurationSection minVillagerLevels = this.config.getConfigurationSection("enchantments.min-villager-levels");
+        this.limitBookMinPrices = this.config.getBoolean("enchantments.limit-min-prices", false);
+        this.limitBookMaxTrades = this.config.getBoolean("enchantments.limit-max-trades", false);
 
         if(minVillagerLevels != null) {
             minVillagerLevels.getKeys(false).forEach((String key) -> {
@@ -178,9 +183,10 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
     @EventHandler
     public void tradeReplenish(VillagerReplenishTradeEvent event) {
         MerchantRecipe recipe = event.getRecipe();
+        ItemStack result = recipe.getResult();
 
         int basePrice = recipe.getIngredients().get(0).getAmount();
-        int minPrice;
+        int minPrice = 1;
         int bonus = event.getBonus();
 
         ConfigurationSection modifyConfig = getTradeConfig(recipe, TradeType.SELLING);
@@ -189,11 +195,20 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
             modifyConfig = getTradeConfig(recipe, TradeType.BUYING);
         }
 
-        if(modifyConfig == null) {
+        if(result.getType() == Material.ENCHANTED_BOOK && this.limitBookMinPrices) {
+            int cost = recipe.getIngredients().get(0).getAmount();
+            minPrice = Math.toIntExact(Math.max(1, Math.round(0.66 * cost)));
+        }
+
+        if(modifyConfig == null && minPrice == 1) {
             return;
         }
 
-        minPrice = modifyConfig.getInt("item1.minCost", 1);
+        if(modifyConfig != null) {
+            minPrice = Math.max(minPrice, modifyConfig.getInt("item1.minCost", 1));
+        }
+
+        getLogger().info("minCost " + minPrice);
 
         if(bonus < 0 && (basePrice + bonus) < minPrice) {
             event.setBonus(-(basePrice - minPrice));
@@ -205,6 +220,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         ItemStack target = tradeType == TradeType.SELLING ? recipe.getResult() : recipe.getIngredients().get(0);
 
         if (target.getType().equals(Material.ENCHANTED_BOOK)) {
+            ConfigurationSection result = null;
             EnchantmentStorageMeta meta = (EnchantmentStorageMeta) target.getItemMeta();
 
             for (Enchantment enchantment : meta.getStoredEnchants().keySet()) {
@@ -212,11 +228,12 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
                         prefix + enchantment.getKey().getKey() + "_" + meta.getStoredEnchantLevel(enchantment));
 
                 if (config != null) {
-                    return config;
+                    result = config;
+                    break;
                 }
             }
 
-            return null;
+            return result;
         }
 
         return this.config.getConfigurationSection(prefix + target.getType().toString());
@@ -343,11 +360,23 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
                 }
             }
 
+            if(this.limitBookMaxTrades && meta.hasStoredEnchants()) {
+                changed = true;
+            }
+
             if(changed) {
                 result.setItemMeta(meta);
 
-                //Copy recipe so we can change the result item
-                MerchantRecipe newRecipe = new MerchantRecipe(result, recipe.getMaxUses());
+                int maxUses = recipe.getMaxUses();
+
+                if(this.limitBookMaxTrades && meta.hasStoredEnchants()) {
+                    Enchantment enchantment = (Enchantment) meta.getStoredEnchants().keySet().toArray()[0];
+                    int level = meta.getStoredEnchantLevel(enchantment);
+                    maxUses = getEnchantmentMaxTrades(enchantment, level);
+                }
+
+                getLogger().info("maxUses: " + maxUses);
+                MerchantRecipe newRecipe = new MerchantRecipe(result, maxUses); //Copy recipe so we can change the result item
                 List<ItemStack> ingredients = recipe.getIngredients();
                 ItemStack firstItem = ingredients.get(0).clone();
                 ItemStack secondItem = ingredients.get(1);
@@ -464,6 +493,26 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         }
 
         return price;
+    }
+
+    public int getEnchantmentMaxTrades(Enchantment enchantment, int level) {
+        if(enchantment.isTreasure()) {
+            return 1;
+        }
+
+        if(enchantment.getMaxLevel() == 1 || level == 1) {
+            return 3;
+        }
+
+        if(level == enchantment.getMaxLevel()) {
+            return 1;
+        }
+
+        if(level == enchantment.getMaxLevel() - 1) {
+            return 2;
+        }
+
+        return 3;
     }
 
     @Override

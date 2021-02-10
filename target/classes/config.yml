@@ -6,8 +6,10 @@
 #######################################################################################################
 
 enchantments:
-  min-villager-levels:
-    mending: 4
+  limit-min-prices: true # Limits book min discounted prices based on level and treasure status
+  limit-max-trades: true # Limits book trades per restock based on level and treasure status
+  min-villager-levels: # Allows limiting specific book types to particular villager career levels
+    mending: 4 # Limit mending to expert villagers
 
 buying:
 
