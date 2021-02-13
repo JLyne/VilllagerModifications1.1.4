@@ -208,8 +208,6 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
             minPrice = Math.max(minPrice, modifyConfig.getInt("item1.minCost", 1));
         }
 
-        getLogger().info("minCost " + minPrice);
-
         if(bonus < 0 && (basePrice + bonus) < minPrice) {
             event.setBonus(-(basePrice - minPrice));
         }
@@ -376,7 +374,6 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
                     maxUses = getEnchantmentMaxTrades(enchantment, level);
                 }
 
-                getLogger().info("maxUses: " + maxUses);
                 MerchantRecipe newRecipe = new MerchantRecipe(result, maxUses); //Copy recipe so we can change the result item
                 List<ItemStack> ingredients = recipe.getIngredients();
                 ItemStack firstItem = ingredients.get(0).clone();
@@ -398,8 +395,6 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
                 if(secondItem != null) {
                     newRecipe.addIngredient(secondItem);
                 }
-
-                getLogger().info(newRecipe.toString());
 
                 villager.setRecipe(pos, newRecipe);
             }
