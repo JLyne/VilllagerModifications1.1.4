@@ -307,11 +307,6 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
 
             pos++;
 
-            if(pos <= lastCheckedIndex) {
-                getLogger().info("Skipping recipe " + pos + " as already checked before");
-                continue;
-            }
-
             ItemStack result = recipe.getResult();
 
             if (!result.getType().equals(Material.ENCHANTED_BOOK)) {
@@ -319,6 +314,12 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
             }
 
             EnchantmentStorageMeta meta = (EnchantmentStorageMeta) result.getItemMeta();
+
+            if(pos <= lastCheckedIndex) {
+                disallowed.addAll(meta.getStoredEnchants().keySet());
+                getLogger().info("Skipping recipe " + pos + " as already checked before");
+                continue;
+            }
 
             for (Enchantment enchantment : meta.getStoredEnchants().keySet()) {
                 int level = meta.getStoredEnchantLevel(enchantment);
