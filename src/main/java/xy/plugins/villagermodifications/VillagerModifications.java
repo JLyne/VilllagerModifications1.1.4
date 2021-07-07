@@ -138,8 +138,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
     @EventHandler
     public void interact(PlayerInteractEntityEvent event) {
         Player p = event.getPlayer();
-        if (!(event.getRightClicked() instanceof Villager)) return;
-        Villager villager = (Villager) event.getRightClicked();
+        if (!(event.getRightClicked() instanceof Villager villager)) return;
 
         if (p.equals(whitelistPlayer)) {
             if (addToWhitelist(villager)) {
@@ -234,7 +233,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
             return result;
         }
 
-        return this.config.getConfigurationSection(prefix + target.getType().toString());
+        return this.config.getConfigurationSection(prefix + target.getType());
     }
 
     public MerchantRecipe modifyRecipe(MerchantRecipe recipe, ConfigurationSection config) {
@@ -352,6 +351,8 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
 
                         changed = true;
                         highestLevel = Math.max(highestLevel, replacementLevel);
+                    } else {
+                        highestLevel = Math.max(highestLevel, level);
                     }
 
                     disallowed.add(enchantment);
@@ -462,27 +463,13 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
     }
 
     public int getEnchantmentPrice(int level, boolean treasure) {
-        int price;
-
-        switch(level) {
-            case 1:
-            default:
-                price = random.nextInt(15) + 5; //5-19
-                break;
-            case 2:
-                price = random.nextInt(25) + 8; //8-32
-                break;
-            case 3:
-                price = random.nextInt(35) + 11; //11-45
-                break;
-            case 4:
-                price = random.nextInt(45) + 14; //14-58
-                break;
-            case 5:
-                price = random.nextInt(55) + 17; //17-71
-                break;
-
-        }
+        int price = switch (level) {
+            default -> random.nextInt(15) + 5; //5-19
+            case 2 -> random.nextInt(25) + 8; //8-32
+            case 3 -> random.nextInt(35) + 11; //11-45
+            case 4 -> random.nextInt(45) + 14; //14-58
+            case 5 -> random.nextInt(55) + 17; //17-71
+        };
 
         if(treasure) {
             price = price * 2;
@@ -514,8 +501,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (command.getName().equals("vmreload")) {
-            if (sender instanceof Player) {
-                Player p = (Player) sender;
+            if (sender instanceof Player p) {
                 if (p.hasPermission("VillagerModification.reload")) {
                     p.sendMessage("Plugin has been reloaded");
                     this.loadSettings();
@@ -530,8 +516,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         }
 
         if (command.getName().equals("vmwhitelist")) {
-            if (sender instanceof Player) {
-                Player p = (Player) sender;
+            if (sender instanceof Player p) {
 
                 if (p.hasPermission("VillagerModification.whitelist")) {
                     if (blacklistPlayer == null) {
@@ -553,8 +538,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         }
 
         if (command.getName().equals("vmoff")) {
-            if (sender instanceof Player) {
-                Player p = (Player) sender;
+            if (sender instanceof Player p) {
 
                 if (p.hasPermission("VillagerModification.whitelist")) {
                     if (whitelistPlayer != null) {
@@ -576,8 +560,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         }
 
         if (command.getName().equals("vmremove")) {
-            if (sender instanceof Player) {
-                Player p = (Player) sender;
+            if (sender instanceof Player p) {
 
                 if (p.hasPermission("VillagerModification.whitelist")) {
                     if (whitelistPlayer == null) {

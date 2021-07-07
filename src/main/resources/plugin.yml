@@ -1,7 +1,9 @@
 main: xy.plugins.villagermodifications.VillagerModifications
-author: Xy
-version: 1.3.0
-api-version: 1.13
+authors:
+  - Jim (NotKatuen)
+  - Xy
+version: @project.version@
+api-version: 1.16
 name: VillagerModifications
 
 commands:
