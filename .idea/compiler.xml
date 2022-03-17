@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="CompilerConfiguration">
-    <bytecodeTargetLevel target="16">
+    <bytecodeTargetLevel target="17">
       <module name="VilllagerModifications1.1.4" target="9" />
     </bytecodeTargetLevel>
   </component>
