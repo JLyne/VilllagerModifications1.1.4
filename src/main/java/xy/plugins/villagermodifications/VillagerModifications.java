@@ -12,6 +12,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.Villager;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.VillagerCareerChangeEvent;
 import org.bukkit.event.entity.VillagerReplenishTradeEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -123,6 +124,14 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
             e.printStackTrace();
         }
     }
+
+    @EventHandler(ignoreCancelled = true)
+	public void onCareerChange(VillagerCareerChangeEvent event) {
+		if(!event.getEntity().getProfession().equals(Villager.Profession.NONE)) {
+			getLogger().info("Resetting persistent data");
+			event.getEntity().getPersistentDataContainer().remove(lastCheckedBookIndex);
+		}
+	}
 
     @EventHandler
     public void quit(PlayerQuitEvent event) {
@@ -416,6 +425,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         List<Enchantment> allowedEnchantments = Arrays.stream(Enchantment.values())
                 .filter((Enchantment enchantment) ->
                                 !enchantment.equals(Enchantment.SOUL_SPEED) &&
+                                        !enchantment.equals(Enchantment.SWIFT_SNEAK) &&
                                         !disallowed.contains(enchantment) &&
                                         minEnchantLevels.getOrDefault(enchantment, 1) <= villagerLevel)
                 .collect(Collectors.toList());
