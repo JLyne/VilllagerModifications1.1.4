@@ -482,7 +482,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         };
 
         if(treasure) {
-            price = price * 2;
+            price = random.nextInt(14) + 50; //50-64
         }
 
         return price;
@@ -490,19 +490,19 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
 
     public int getEnchantmentMaxTrades(Enchantment enchantment, int level) {
         if(enchantment.isTreasure()) {
-            return 1;
+            return 2;
         }
 
         if(enchantment.getMaxLevel() == 1 || level == 1) {
-            return 3;
+            return 4;
         }
 
         if(level == enchantment.getMaxLevel()) {
-            return 1;
+            return 2;
         }
 
         if(level == enchantment.getMaxLevel() - 1) {
-            return 2;
+            return 3;
         }
 
         return 3;
