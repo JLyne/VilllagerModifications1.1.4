@@ -369,7 +369,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
                 }
             }
 
-            if(this.limitBookMaxTrades && meta.hasStoredEnchants()) {
+            if((this.limitBookMaxTrades || this.limitBookMinPrices) && meta.hasStoredEnchants()) {
                 changed = true;
             }
 
