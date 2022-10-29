@@ -309,8 +309,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         for (MerchantRecipe recipe : villager.getRecipes()) {
             boolean changed = false; //Whether any enchantments were modified
             int highestLevel = 1; //Highest level of any enchantment in the result item, used for generating price
-            boolean isTreasure = false; //Whether any enchantments are treasure, used for generating price
-
+            Enchantment highestEnchantment = null; //Highest level of any enchantment in the result item, used for generating price
             pos++;
 
             ItemStack result = recipe.getResult();
@@ -345,8 +344,11 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
                     meta.addStoredEnchant(replacement, replacementLevel, false);
 
                     changed = true;
-                    isTreasure = isTreasure || replacement.isTreasure();
-                    highestLevel = Math.max(highestLevel, replacementLevel);
+
+                    if(replacementLevel > highestLevel) {
+                        highestEnchantment = replacement;
+                        highestLevel = replacementLevel;
+                    }
                 } else {
                     List<Integer> allowedLevels = getEnchantmentLevelRange(enchantment, villagerLevel);
 
@@ -359,13 +361,17 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
                         meta.addStoredEnchant(enchantment, replacementLevel, false);
 
                         changed = true;
-                        highestLevel = Math.max(highestLevel, replacementLevel);
-                    } else {
-                        highestLevel = Math.max(highestLevel, level);
+
+                        if(replacementLevel > highestLevel) {
+                            highestEnchantment = enchantment;
+                            highestLevel = replacementLevel;
+                        }
+                    } else if(level > highestLevel) {
+                        highestEnchantment = enchantment;
+                        highestLevel = level;
                     }
 
                     disallowed.add(enchantment);
-                    isTreasure = isTreasure || enchantment.isTreasure();
                 }
             }
 
@@ -391,7 +397,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
 
                 //Generate new price to reflect level/type changes
                 if(firstItem.getType() == Material.EMERALD) {
-                    int price = getEnchantmentPrice(highestLevel, isTreasure);
+                    int price = getEnchantmentPrice(highestEnchantment, highestLevel);
                     getLogger().info("Changing price to: " + price);
                     firstItem.setAmount(price);
                 }
@@ -472,7 +478,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         return range;
     }
 
-    public int getEnchantmentPrice(int level, boolean treasure) {
+    public int getEnchantmentPrice(Enchantment enchantment, int level) {
         int price = switch (level) {
             default -> random.nextInt(15) + 5; //5-19
             case 2 -> random.nextInt(25) + 8; //8-32
@@ -481,7 +487,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
             case 5 -> random.nextInt(55) + 17; //17-71
         };
 
-        if(treasure) {
+        if(enchantment.isTreasure() || enchantment.getMaxLevel() == level) {
             price = random.nextInt(14) + 50; //50-64
         }
 
