@@ -308,7 +308,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         int pos = -1;
         for (MerchantRecipe recipe : villager.getRecipes()) {
             boolean changed = false; //Whether any enchantments were modified
-            int highestLevel = 1; //Highest level of any enchantment in the result item, used for generating price
+            int highestLevel = 0; //Highest level of any enchantment in the result item, used for generating price
             Enchantment highestEnchantment = null; //Highest level of any enchantment in the result item, used for generating price
             pos++;
 
