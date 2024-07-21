@@ -2,6 +2,7 @@ package xy.plugins.villagermodifications;
 
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
@@ -11,6 +12,7 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Villager;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.VillagerCareerChangeEvent;
 import org.bukkit.event.entity.VillagerReplenishTradeEvent;
@@ -21,11 +23,11 @@ import org.bukkit.inventory.MerchantRecipe;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public final class VillagerModifications extends JavaPlugin implements Listener {
     private File whitelistFile;
@@ -72,7 +74,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
 
         if(minVillagerLevels != null) {
             minVillagerLevels.getKeys(false).forEach((String key) -> {
-                Enchantment enchantment = Enchantment.getByKey(NamespacedKey.minecraft(key));
+                Enchantment enchantment = Registry.ENCHANTMENT.get(NamespacedKey.minecraft(key));
 
                 if(enchantment != null) {
                     this.minEnchantLevels.put(enchantment, minVillagerLevels.getInt(key, 1));
@@ -120,12 +122,11 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         try {
             this.whitelistConfig.save(this.whitelistFile);
         } catch (IOException e) {
-            getLogger().severe("Failed to save whitelist");
-            e.printStackTrace();
+            getLogger().severe("Failed to save whitelist: " + e);
         }
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
 	public void onCareerChange(VillagerCareerChangeEvent event) {
 		if(!event.getEntity().getProfession().equals(Villager.Profession.NONE)) {
 			getLogger().info("Resetting persistent data");
@@ -193,9 +194,9 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         MerchantRecipe recipe = event.getRecipe();
         ItemStack result = recipe.getResult();
 
-        int basePrice = recipe.getIngredients().get(0).getAmount();
+        int basePrice = recipe.getIngredients().getFirst().getAmount();
         int minPrice = 1;
-        int bonus = event.getBonus();
+        int bonus = event.getRecipe().getUses();
 
         ConfigurationSection modifyConfig = getTradeConfig(recipe, TradeType.SELLING);
 
@@ -204,7 +205,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         }
 
         if(result.getType() == Material.ENCHANTED_BOOK && this.limitBookMinPrices) {
-            int cost = recipe.getIngredients().get(0).getAmount();
+            int cost = recipe.getIngredients().getFirst().getAmount();
             minPrice = Math.toIntExact(Math.max(1, Math.round(0.66 * cost)));
         }
 
@@ -217,13 +218,13 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         }
 
         if(bonus < 0 && (basePrice + bonus) < minPrice) {
-            event.setBonus(-(basePrice - minPrice));
+            event.getRecipe().setUses(-(basePrice - minPrice));
         }
     }
 
-    public ConfigurationSection getTradeConfig(MerchantRecipe recipe, TradeType tradeType) {
+    private ConfigurationSection getTradeConfig(MerchantRecipe recipe, TradeType tradeType) {
         String prefix = tradeType.toString().toLowerCase() + ".";
-        ItemStack target = tradeType == TradeType.SELLING ? recipe.getResult() : recipe.getIngredients().get(0);
+        ItemStack target = tradeType == TradeType.SELLING ? recipe.getResult() : recipe.getIngredients().getFirst();
 
         if (target.getType().equals(Material.ENCHANTED_BOOK)) {
             ConfigurationSection result = null;
@@ -257,7 +258,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
             ConfigurationSection item2Config = config.getConfigurationSection("item2");
             ConfigurationSection resultConfig = config.getConfigurationSection("result");
 
-            ItemStack item1 = recipe.getIngredients().get(0);
+            ItemStack item1 = recipe.getIngredients().getFirst();
             ItemStack item2 = recipe.getIngredients().get(1);
             ItemStack result = recipe.getResult();
 
@@ -304,6 +305,8 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
         } else {
             lastCheckedIndex = -1;
         }
+
+        getLogger().info("Last checked book index " + lastCheckedIndex);
 
         int pos = -1;
         for (MerchantRecipe recipe : villager.getRecipes()) {
@@ -392,7 +395,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
 
                 MerchantRecipe newRecipe = new MerchantRecipe(result, maxUses); //Copy recipe so we can change the result item
                 List<ItemStack> ingredients = recipe.getIngredients();
-                ItemStack firstItem = ingredients.get(0).clone();
+                ItemStack firstItem = ingredients.getFirst().clone();
                 ItemStack secondItem = ingredients.get(1);
 
                 //Generate new price to reflect level/type changes
@@ -428,13 +431,13 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
     }
 
     private Enchantment getEnchantment(int villagerLevel, Set<Enchantment> disallowed) {
-        List<Enchantment> allowedEnchantments = Arrays.stream(Enchantment.values())
+        List<Enchantment> allowedEnchantments = Registry.ENCHANTMENT.stream()
                 .filter((Enchantment enchantment) ->
                                 !enchantment.equals(Enchantment.SOUL_SPEED) &&
                                         !enchantment.equals(Enchantment.SWIFT_SNEAK) &&
                                         !disallowed.contains(enchantment) &&
                                         minEnchantLevels.getOrDefault(enchantment, 1) <= villagerLevel)
-                .collect(Collectors.toList());
+                .toList();
 
         return allowedEnchantments.get(random.nextInt(allowedEnchantments.size()));
     }
@@ -515,7 +518,7 @@ public final class VillagerModifications extends JavaPlugin implements Listener 
     }
 
     @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+    public boolean onCommand(@NotNull CommandSender sender, Command command, @NotNull String label, String[] args) {
         if (command.getName().equals("vmreload")) {
             if (sender instanceof Player p) {
                 if (p.hasPermission("VillagerModification.reload")) {
